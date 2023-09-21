@@ -1,54 +1,113 @@
 import numpy as np
-import torch
-
-
-# -*- coding: utf-8 -*-
-import numpy as np
-import math
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+from torch.utils.data import Dataset
 
-# Create random input and output data
-x = np.linspace(-math.pi, math.pi, 2000)
-y = np.sin(x)
+### CLASSES #####
+# Rock tone class definition
+class ToneNet(nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super(ToneNet, self).__init__(*args, **kwargs)
+        self.fc_input = nn.Linear(128, 1024)
+        self.fc1 = nn.Linear(1024, 2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.fc3 = nn.Linear(2048, 1024)
+        self.fc_output = nn.Linear(1024, 128)
+        self.relu = nn.ReLU()
+        self.tan = nn.Tanh()
 
-plt.plot(x, y)
-plt.show()
+    def forward(self, x):
+        x = self.relu(self.fc_input(x))
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.tan(self.fc_output(x))
 
-# Randomly initialize weights
-a = np.random.randn()
-b = np.random.randn()
-c = np.random.randn()
-d = np.random.randn()
 
-learning_rate = 1e-6
-for t in range(2000):
-    # Forward pass: compute predicted y
-    # y = a + b x + c x^2 + d x^3
-    y_pred = a + b * x + c * x ** 2 + d * x ** 3
+# Dataset class for audio data. 
+# Labels are desired output samples.
+# class WavDataset(Dataset):
+#     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+#         self.img_labels = pd.read_csv(annotations_file)
+#         self.img_dir = img_dir
+#         self.transform = transform
+#         self.target_transform = target_transform
 
-    # Compute and print loss
-    loss = np.square(y_pred - y).sum()
-    if t % 100 == 99:
-        print(t, loss)
+#     def __len__(self):
+#         return len(self.img_labels)
 
-    # Backprop to compute gradients of a, b, c, d with respect to loss
-    grad_y_pred = 2.0 * (y_pred - y)
-    grad_a = grad_y_pred.sum()
-    grad_b = (grad_y_pred * x).sum()
-    grad_c = (grad_y_pred * x ** 2).sum()
-    grad_d = (grad_y_pred * x ** 3).sum()
+#     def __getitem__(self, idx):
+#         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+#         image = read_image(img_path)
+#         label = self.img_labels.iloc[idx, 1]
+#         if self.transform:
+#             image = self.transform(image)
+#         if self.target_transform:
+#             label = self.target_transform(label)
+#         return image, label
 
-    plt.plot(x, y, x, y_pred)
-    plt.show()
+### FUNCITONS #####
+# Train the model passed as argument
+def train_net(model=None, 
+              epochs=10, 
+              loss_func=nn.MSELoss(),
+              optimizer = None,
+              learn_rate= 0.001, 
+              train_ds= None,
+              val_ds= None,
+              test_ds= None):
+    
+    # Set device
+    if torch.cuda.is_available():
+        print("CUDA device is Available -> ", torch.cuda.device_count())
+    else:
+        print("No CUDA device, using CPU")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    # Update weights
-    a -= learning_rate * grad_a
-    b -= learning_rate * grad_b
-    c -= learning_rate * grad_c
-    d -= learning_rate * grad_d
+    # Instantiate the network and send it to device
+    model = model.to(device)
 
-print(f'Result: y = {a} + {b} x + {c} x^2 + {d} x^3')
+    # Define a Loss function and optimizer
+    criterion = loss_func
+    if optimizer == None:
+        optimizer = optim.Adam(model.parameters(), lr=learn_rate)
 
-y_pred = a + b * x + c * x ** 2 + d * x ** 3
-plt.plot(x, y, x, y_pred)
-plt.show()
+    # # Load CIFAR-10 data
+    # transform = transforms.Compose([transforms.ToTensor(), 
+    #                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+    # )
+
+    # trainset = torchvision.datasets.CIFAR10(root='./data', train=True, 
+    #                                         download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=8, 
+                                            shuffle=True, num_workers=6)
+
+    # Train the network
+    for epoch in range(10):  # loop over the dataset multiple times
+        running_loss = 0.0
+        for i, data in enumerate(trainloader, 0):
+            # get the inputs; data is a list of [inputs, labels]
+            inputs, labels = data[0].to(device), data[1].to(device)
+
+            # zero the parameter gradients
+            optimizer.zero_grad()
+
+            # forward + backward + optimize
+            outputs = net(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            # print statistics
+            running_loss += loss.item()
+            if i % 1000 == 999:    # print every 1000 mini-batches
+                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 1000))
+                running_loss = 0.0
+
+    print('Finished Training')
