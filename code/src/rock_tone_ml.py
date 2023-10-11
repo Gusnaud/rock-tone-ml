@@ -14,11 +14,15 @@ from torch.utils.data import Dataset
 class ToneNet(nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super(ToneNet, self).__init__(*args, **kwargs)
-        self.fc_input = nn.Linear(128, 1024)
-        self.fc1 = nn.Linear(1024, 2048)
+        self.fc_input = nn.Linear(1, 512)
+        self.fc1 = nn.Linear(512, 2048)
         self.fc2 = nn.Linear(2048, 2048)
-        self.fc3 = nn.Linear(2048, 1024)
-        self.fc_output = nn.Linear(1024, 128)
+        self.fc3 = nn.Linear(2048, 2048)
+        self.fc31 = nn.Linear(2048, 2048)
+        self.fc32 = nn.Linear(2048, 2048)
+        self.drop = nn.Dropout(p=0.3)
+        self.fc4 = nn.Linear(2048, 512)
+        self.fc_output = nn.Linear(512, 1)
         self.relu = nn.ReLU()
         self.tan = nn.Tanh()
 
@@ -27,30 +31,53 @@ class ToneNet(nn.Module):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         x = self.relu(self.fc3(x))
+        x = self.relu(self.fc31(x))
+        x = self.relu(self.fc32(x))
+
+        x = self.drop(x)
+        x = self.relu(self.fc4(x))
         x = self.tan(self.fc_output(x))
+        return x
 
 
-# Dataset class for audio data. 
-# Labels are desired output samples.
-# class WavDataset(Dataset):
-#     def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
-#         self.img_labels = pd.read_csv(annotations_file)
-#         self.img_dir = img_dir
-#         self.transform = transform
-#         self.target_transform = target_transform
+class WavDataset(Dataset):
+    def __init__(self, data_samples, labels, transforms=None):
+        """
+        Args:
+            data_samples (list): List of data samples.
+            labels (list): Corresponding labels for the data samples.
+            transforms (callable, optional): Optional transform to be applied on a sample.
+        """
+        self.data_samples = data_samples
+        self.labels = labels
+        self.transforms = transforms
+    
+    def __len__(self):
+        """
+        Returns the total number of samples in this dataset.
+        """
+        return len(self.data_samples)
+    
+    def __getitem__(self, idx):
+        """
+        Retrieves the sample and its label at the given index.
+        
+        Args:
+            idx (int): Index of the sample to retrieve.
+            
+        Returns:
+            sample (Tensor): The data sample at the given index.
+            label (Tensor): The data target at the given index.
+        """
+        sample = torch.tensor(self.data_samples[idx], dtype=torch.float32)
+        label = torch.tensor(self.labels[idx], dtype=torch.float32)
+        
+        if self.transforms:
+            sample = self.transforms(sample)
+        
+        return torch.unsqueeze(sample, 0), torch.unsqueeze(label, 0)
+        # return sample, label
 
-#     def __len__(self):
-#         return len(self.img_labels)
-
-#     def __getitem__(self, idx):
-#         img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
-#         image = read_image(img_path)
-#         label = self.img_labels.iloc[idx, 1]
-#         if self.transform:
-#             image = self.transform(image)
-#         if self.target_transform:
-#             label = self.target_transform(label)
-#         return image, label
 
 ### FUNCITONS #####
 # Train the model passed as argument
@@ -58,10 +85,11 @@ def train_net(model=None,
               epochs=10, 
               loss_func=nn.MSELoss(),
               optimizer = None,
-              learn_rate= 0.001, 
+              learn_rate= 0.01, 
               train_ds= None,
               val_ds= None,
-              test_ds= None):
+              test_ds= None,
+              save_to_file= False):
     
     # Set device
     if torch.cuda.is_available():
@@ -76,38 +104,45 @@ def train_net(model=None,
     # Define a Loss function and optimizer
     criterion = loss_func
     if optimizer == None:
+        print("I: Setting Default Adam optimizer, because none were given.")
         optimizer = optim.Adam(model.parameters(), lr=learn_rate)
 
-    # # Load CIFAR-10 data
-    # transform = transforms.Compose([transforms.ToTensor(), 
-    #                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
-    # )
-
-    # trainset = torchvision.datasets.CIFAR10(root='./data', train=True, 
-    #                                         download=True, transform=transform)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=8, 
-                                            shuffle=True, num_workers=6)
+    trainloader = torch.utils.data.DataLoader(train_ds, batch_size=64, 
+                                            shuffle=True, num_workers=1
+    )
 
     # Train the network
-    for epoch in range(10):  # loop over the dataset multiple times
+    for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
-        for i, data in enumerate(trainloader, 0):
+        steps = 0
+        for data_i, data_l in trainloader:
             # get the inputs; data is a list of [inputs, labels]
-            inputs, labels = data[0].to(device), data[1].to(device)
+            inputs, labels = data_i.to(device), data_l.to(device)
+            # print(inputs.shape)
+            # print(inputs[0], labels[0])
 
             # zero the parameter gradients
             optimizer.zero_grad()
 
             # forward + backward + optimize
-            outputs = net(inputs)
+            outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
-            # print statistics
-            running_loss += loss.item()
-            if i % 1000 == 999:    # print every 1000 mini-batches
-                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 1000))
-                running_loss = 0.0
+            steps += 1
+
+            running_loss += outputs.shape[0] * loss.item()
+            # print(loss)
+
+        # Print loss for each epoch    
+        print('[Epoch: %d, Steps: %5d, loss: %.3f]' % (epoch + 1, steps, running_loss / float(len(trainloader.dataset))))
+                
 
     print('Finished Training')
+
+    if save_to_file == True:
+        torch.save(model, 'rock_tone_ml_model.pth')
+
+
+    

@@ -1,14 +1,28 @@
 import sys
 import matplotlib.pyplot as plt
+import numpy as np
 
 sys.path.append('code\\')
 import utils.audio_tools as audt
-audt.test_import()
+# audt.test_import()
+
+def load_wav_data(file_path=None, length_mod=0.02):
+    if file_path == None:
+        print("E: No file_path given. Exiting...")
+        return None
+    
+    samples = np.asarray(load_audio_samples(file_path))
+    slice_len = int(len(samples) * length_mod)
+    samples = samples[:slice_len]
+    samples = samples / np.max(samples)
+    return samples
+
 
 def load_audio_samples(file_path=None):
     wave_obj = audt.read_wav(file_path, mode='rb') 
     samples = audt.decode_wav(wave_obj)
     return samples
+
 
 def plot_samples(samples):
     # x data for plotting
