@@ -1,6 +1,6 @@
 import numpy as np
 import sys
-sys.path.append('code\\')
+sys.path.append('code')
 import utils.tone_set_loader as tsl
 # audt.test_import()
 # import tone_set_loader as tsl
