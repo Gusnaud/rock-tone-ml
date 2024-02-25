@@ -8,18 +8,18 @@ import rock_tone_ml as ampnet
 # from torchvis import make_dot
 def main():
     # WAV file to load
-    wav_file = 'data\Marshall Plexi - Dry.wav'
-    target_wav_file = 'data\Marshall Plexi - Amp.wav'
+    wav_file = 'data/Marshall Plexi - Dry.wav'
+    target_wav_file = 'data/Marshall Plexi - Amp.wav'
 
     # Load samples from given wav file
-    samples = tsl.load_wav_data(file_path=wav_file, length_mod=0.01)
+    samples = tsl.load_wav_data(file_path=wav_file, length_mod=0.0001)
     # print(samples.dtype)
 
     # Target tone file
-    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_mod=0.01)
+    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_mod=0.0001)
 
     # Sample diffs
-    diff_samples = samples - target_samples
+    diff_samples = [ss - tt for ss, tt in zip(samples, target_samples)]
 
     # # Plot and vizualise samples
     # tsl.plot_samples(samples=samples)
@@ -30,6 +30,7 @@ def main():
     model = ampnet.ToneNet()
     # model.double()
     print(model)
+
     # # Generate the visualization
     # dot = make_dot(model(dummy_input), params=dict(model.named_parameters()))
     # dot.render(filename='model_graph', format='png', cleanup=True)
@@ -37,7 +38,7 @@ def main():
     # Create dataset
     train_ds = ampnet.WavDataset(samples, target_samples)
 
-    ampnet.train_net(model=model, epochs=50, 
+    ampnet.train_net(model=model, epochs=10, 
                      train_ds=train_ds, learn_rate=1e-5,
                      save_to_file=True
     )

@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 # import torchvision
 # import torchvision.transforms as transforms
+from transformers import SpeechT5Processor, SpeechT5ForSpeechToSpeech, SpeechT5HifiGan
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
 
@@ -14,24 +15,25 @@ from torch.utils.data import Dataset
 class ToneNet(nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super(ToneNet, self).__init__(*args, **kwargs)
-        self.fc_input = nn.Linear(1, 512)
-        self.fc1 = nn.Linear(512, 2048)
-        self.fc2 = nn.Linear(2048, 2048)
-        self.fc3 = nn.Linear(2048, 2048)
-        self.fc31 = nn.Linear(2048, 2048)
-        self.fc32 = nn.Linear(2048, 2048)
-        self.drop = nn.Dropout(p=0.3)
-        self.fc4 = nn.Linear(2048, 512)
-        self.fc_output = nn.Linear(512, 1)
+        self.fc_input = nn.Conv1d(in_channels=1, out_channels=512, kernel_size=3)
+        self.fc_conv = nn.Conv1d(in_channels=512, out_channels=512, kernel_size=3)
+        self.fc1 = nn.Linear(508, 512)
+        self.fc2 = nn.Linear(510, 512)
+        self.fc3 = nn.Linear(510, 512)
+        self.fc31 = nn.Linear(510, 512)
+        self.fc32 = nn.Linear(512, 512)
+        self.drop = nn.Dropout(p=0.2)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc_output = nn.Linear(512, 512)
         self.relu = nn.ReLU()
         self.tan = nn.Tanh()
 
     def forward(self, x):
         x = self.relu(self.fc_input(x))
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))
-        x = self.relu(self.fc31(x))
+        x = self.relu(self.fc1(self.fc_conv(x)))
+        x = self.relu(self.fc2(self.fc_conv(x)))
+        x = self.relu(self.fc3(self.fc_conv(x)))
+        x = self.relu(self.fc31(self.fc_conv(x)))
         x = self.relu(self.fc32(x))
 
         x = self.drop(x)
@@ -85,7 +87,7 @@ def train_net(model=None,
               epochs=10, 
               loss_func=nn.MSELoss(),
               optimizer = None,
-              learn_rate= 0.01, 
+              learn_rate= 1e-4, 
               train_ds= None,
               val_ds= None,
               test_ds= None,
@@ -118,11 +120,6 @@ def train_net(model=None,
         for data_i, data_l in trainloader:
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data_i.to(device), data_l.to(device)
-            # print(inputs.shape)
-            # print(inputs[0], labels[0])
-
-            # zero the parameter gradients
-            optimizer.zero_grad()
 
             # forward + backward + optimize
             outputs = model(inputs)
@@ -133,7 +130,9 @@ def train_net(model=None,
             steps += 1
 
             running_loss += outputs.shape[0] * loss.item()
-            # print(loss)
+            
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
         # Print loss for each epoch    
         print('[Epoch: %d, Steps: %5d, loss: %.3f]' % (epoch + 1, steps, running_loss / float(len(trainloader.dataset))))

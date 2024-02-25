@@ -13,9 +13,13 @@ def load_wav_data(file_path=None, length_mod=0.02):
     
     samples = np.asarray(load_audio_samples(file_path))
     slice_len = int(len(samples) * length_mod)
-    samples = samples[:slice_len]
+    print('slice_len:', slice_len)
+    samples = samples[int(len(samples)/2):int(len(samples)/2) + slice_len]
     samples = samples / np.max(samples)
-    return samples
+    print(samples)
+    # Slice the samples list into segments of size L
+    seg_samples = [samples[ii:ii+512] for ii in range(0, len(samples)-512)]
+    return seg_samples
 
 
 def load_audio_samples(file_path=None):
