@@ -13,7 +13,8 @@ def main():
 
     # Load samples from given wav file
     samples = tsl.load_wav_data(file_path=wav_file, length_mod=0.0001)
-    # print(samples.dtype)
+    # print(len(samples))
+    # print(samples[0])
 
     # Target tone file
     target_samples = tsl.load_wav_data(file_path=target_wav_file, length_mod=0.0001)
@@ -27,7 +28,8 @@ def main():
     # tsl.plot_samples(samples=diff_samples)
 
     # Create new model
-    model = ampnet.ToneNet()
+    # model = ampnet.ToneNet()
+    model = ampnet.VocoderCNN()
     # model.double()
     print(model)
 
@@ -38,10 +40,17 @@ def main():
     # Create dataset
     train_ds = ampnet.WavDataset(samples, target_samples)
 
-    ampnet.train_net(model=model, epochs=10, 
-                     train_ds=train_ds, learn_rate=1e-5,
+    ampnet.train_net(model=model, epochs=3, 
+                     train_ds=train_ds, learn_rate=1e-4,
                      save_to_file=True
     )
+
+    # Use the created model for inference on new signals
+    model.eval()
+    print(samples[:5])
+    modulated_data = model(samples)
+    print(modulated_data)
+    # tsl.write_wav_file(file_path='data/Marshall_Plexi_modulated.wav', data=modulated_data)
 
     
 if __name__ == '__main__':

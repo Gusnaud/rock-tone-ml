@@ -40,6 +40,43 @@ class ToneNet(nn.Module):
         x = self.relu(self.fc4(x))
         x = self.tan(self.fc_output(x))
         return x
+    
+
+class VocoderCNN(nn.Module):
+    def __init__(self):
+        super(VocoderCNN, self).__init__()
+        # Encoder layers
+        self.encoder = nn.Sequential(
+            nn.Conv1d(in_channels=1, out_channels=32, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=64, out_channels=256, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+        )
+        
+        # Decoder layers
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose1d(in_channels=1024, out_channels=512, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=512, out_channels=256, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=256, out_channels=64, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=64, out_channels=32, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=32, out_channels=1, kernel_size=3, stride=1, padding=1),
+            nn.Tanh(),  # Tanh to ensure the output is within a range suitable for audio signals
+        )
+
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
 
 
 class WavDataset(Dataset):
@@ -84,7 +121,7 @@ class WavDataset(Dataset):
 ### FUNCITONS #####
 # Train the model passed as argument
 def train_net(model=None, 
-              epochs=10, 
+              epochs=30, 
               loss_func=nn.MSELoss(),
               optimizer = None,
               learn_rate= 1e-4, 

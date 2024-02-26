@@ -16,10 +16,18 @@ def load_wav_data(file_path=None, length_mod=0.02):
     print('slice_len:', slice_len)
     samples = samples[int(len(samples)/2):int(len(samples)/2) + slice_len]
     samples = samples / np.max(samples)
-    print(samples)
+    print(samples) 
     # Slice the samples list into segments of size L
     seg_samples = [samples[ii:ii+512] for ii in range(0, len(samples)-512)]
-    return seg_samples
+    result = list()
+    for ll in seg_samples:
+        for el in ll:
+            result.append(el)
+    return result
+
+def write_wav_file(file_path=None, data=None):
+    audt.save_wav(file_path=file_path, data=data)
+    return
 
 
 def load_audio_samples(file_path=None):
