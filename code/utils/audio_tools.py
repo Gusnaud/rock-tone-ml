@@ -38,20 +38,21 @@ def decode_wav(wav_obj):
 # Function to save data as a WAV file
 def save_wav(file_path, data=None, sample_rate=44100):
     # Check if the data is not None before saving
-    if data != None:
-        # Open the WAV file in write mode
-        with wave.open(file_path, 'w') as wav_file:
-            # Convert the data to 16-bit integer values. This ensures that the 
-            # highest value is within the 16-bit range which is the usual depth for WAV files.
-            audio = np.int16(data * 32767)
-            
-            # Set the parameters for the WAV file: 
-            # (number of channels, width in bytes of samples, sample rate, 
-            # number of frames, compression type, compression name)
-            wav_file.setparams((1, 2, sample_rate, 0, 'NONE', 'not compressed'))
-            
-            # Write the audio data to the WAV file
-            wav_file.writeframes(audio.tobytes())
+
+    # Open the WAV file in write mode
+    with wave.open(file_path, 'w') as wav_file:
+        # Convert the data to 16-bit integer values. This ensures that the 
+        # highest value is within the 16-bit range which is the usual depth for WAV files.
+        audio = np.int16(data * 32767)
+        
+        # Set the parameters for the WAV file: 
+        # (number of channels, width in bytes of samples, sample rate, 
+        # number of frames, compression type, compression name)
+        wav_file.setparams((1, 2, sample_rate, 0, 'NONE', 'not compressed'))
+        print('D:',  audio)
+        
+        # Write the audio data to the WAV file
+        wav_file.writeframes(audio.tobytes())
 
 # TODO: Get fft of wav data
 def wav_fft():
