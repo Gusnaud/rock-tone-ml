@@ -62,6 +62,30 @@ class ToneNet(nn.Module):
         # print(x.shape)
         return x
     
+class ToneNet_NN(nn.Module):
+    def __init__(self, *args, **kwargs) -> None:
+        super(ToneNet_NN, self).__init__(*args, **kwargs)
+        self.fc2 = nn.Linear(1, 128)
+        self.fc3 = nn.Linear(128, 512)
+        self.fc31 = nn.Linear(512, 512)
+        self.fc32 = nn.Linear(512, 128)
+        self.drop = nn.Dropout(p=0.2)
+        self.fc4 = nn.Linear(128, 32)
+        self.fc_output = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+        self.tan = nn.Tanh()
+
+    def forward(self, x):
+        x = self.relu(self.fc2(x))
+        x = self.relu(self.fc3(x))
+        x = self.relu(self.fc31(x))
+        x = self.relu(self.fc32(x))
+
+        x = self.drop(x)
+        x = self.relu(self.fc4(x))
+        x = self.tan(self.fc_output(x))
+        return x
+
 
 class VocoderCNN(nn.Module):
     def __init__(self):
@@ -72,22 +96,32 @@ class VocoderCNN(nn.Module):
             nn.ReLU(),
             nn.Conv1d(in_channels=128, out_channels=512, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            # nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
-            # nn.ReLU(),
-            # nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1),
-            # nn.ReLU(),
+            nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
             # nn.Conv1d(in_channels=2048, out_channels=2048, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+
+            # nn.Linear(1024, 1024, False),
+            # nn.ReLU(),
+            # nn.Linear(1024, 1024, False),
             # nn.ReLU(),
         )
         
         # Decoder layers
         self.decoder = nn.Sequential(
+            # nn.Linear(1024, 1024, False),
+            # nn.ReLU(),
+            # nn.Linear(1024, 1024, False),
+            # nn.ReLU(),
+
             # nn.ConvTranspose1d(in_channels=2048, out_channels=2048, kernel_size=1, stride=1, padding=0),
             # nn.ReLU(),
-            # nn.ConvTranspose1d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, padding=0),
-            # nn.ReLU(),
-            # nn.ConvTranspose1d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0),
-            # nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, padding=0),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0),
+            nn.ReLU(),
             nn.ConvTranspose1d(in_channels=512, out_channels=128, kernel_size=1, stride=1, padding=0),
             nn.ReLU(),
             nn.ConvTranspose1d(in_channels=128, out_channels=1, kernel_size=1, stride=1, padding=0),
@@ -145,8 +179,8 @@ class WavDataset(Dataset):
             sample = self.transforms(sample)
         
         # Ensure correct dimentionality when returning a batch
-        return sample.unsqueeze(0).unsqueeze(0), label.unsqueeze(0).unsqueeze(0)
-        # return sample, label
+        # return sample.unsqueeze(0).unsqueeze(0), label.unsqueeze(0).unsqueeze(0)
+        return sample.unsqueeze(0), label.unsqueeze(0)
 
 
 ### FUNCITONS #####

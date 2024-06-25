@@ -51,7 +51,7 @@ def plot_samples(samples, title='Audio samples over time', is_segmented=True):
 
     # x data for plotting
     x = [ii for ii in range(len(plt_samples))]
-    print("Length of audio segment [Samples]: ", len(plt_samples) / 44100)
+    print("Length of audio segment [Seconds]: ", len(plt_samples) / 44100)
 
     plt_samples = np.asarray(plt_samples)
 
