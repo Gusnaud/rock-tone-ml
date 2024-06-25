@@ -12,19 +12,21 @@ def main():
     target_wav_file = 'data/Marshall Plexi - Amp.wav'
     
     start_secs = 4 * 60 + 30
+    segment_length = 1
+    is_segmented = True if segment_length > 1 else False
 
     # Load samples from given wav file
-    samples = tsl.load_wav_data(file_path=wav_file, length_sec=1, start=start_secs)
+    samples = tsl.load_wav_data(file_path=wav_file, length_sec=1, start=start_secs, segment_l=segment_length)
 
     # Target tone file
-    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_sec=1, start=start_secs)
+    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_sec=1, start=start_secs, segment_l=segment_length)
 
     # Sample diffs
     diff_samples = [ss - tt for ss, tt in zip(samples, target_samples)]
 
     # # Plot and vizualise samples
-    tsl.plot_samples(samples=samples)
-    tsl.plot_samples(samples=target_samples)
+    tsl.plot_samples(samples=samples, is_segmented=False)
+    tsl.plot_samples(samples=target_samples, is_segmented=False)
     # tsl.plot_samples(samples=diff_samples)
 
     # Create new model
@@ -39,7 +41,7 @@ def main():
 
 
     # Create dataset
-    train_ds = ampnet.WavDataset(samples, target_samples)
+    train_ds = ampnet.WavDataset(samples, target_samples, batch_size=segment_length)
 
     ampnet.train_net(model=model, epochs=1, 
                      train_ds=train_ds, learn_rate=1e-5, batch_size=512,

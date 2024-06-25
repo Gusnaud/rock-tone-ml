@@ -6,7 +6,7 @@ sys.path.append('code\\')
 import utils.audio_tools as audt
 # audt.test_import()
 
-def load_wav_data(file_path=None, length_sec=0.1, start=0):
+def load_wav_data(file_path=None, length_sec=0.1, start=0, segment_l=512):
     if file_path == None:
         print("E: No file_path given. Exiting...")
         return None
@@ -24,13 +24,13 @@ def load_wav_data(file_path=None, length_sec=0.1, start=0):
     # Norm between -1 and 1
     samples = samples / np.max(samples)
 
-    # Slice the samples list into segments of size L
-    seg_samples = [samples[ii:ii+512] for ii in range(0, len(samples)-512)]
-    result = list()
-    for ll in seg_samples:
-        for el in ll:
-            result.append(el)
-    return result
+    # # Slice the samples list into segments of size L
+    # seg_samples = [samples[ii:ii+segment_l] for ii in range(0, len(samples)-segment_l)]
+    # result = list()
+    # for ll in seg_samples:
+    #     for el in ll:
+    #         result.append(el)
+    return samples
 
 def write_wav_file(file_path=None, data=None):
     audt.save_wav(file_path=file_path, data=data)
@@ -44,19 +44,24 @@ def load_audio_samples(file_path=None):
     return samples, sample_rate
 
 
-def plot_samples(samples, title='Audio samples over time'):
-    # x data for plotting
-    x = [ii for ii in range(len(samples))]
-    print("Length of audio file [Samples]: ", len(samples) / 44100)
+def plot_samples(samples, title='Audio samples over time', is_segmented=True):
+    plt_samples = samples.copy()
+    if is_segmented:
+        plt_samples = [ii for seg in samples for ii in seg]
 
-    samples = np.asarray(samples)
+    # x data for plotting
+    x = [ii for ii in range(len(plt_samples))]
+    print("Length of audio segment [Samples]: ", len(plt_samples) / 44100)
+
+    plt_samples = np.asarray(plt_samples)
 
     plt.figure(1)
-    if len(samples.shape) > 1:
-        for p in range(samples.shape):
-            plt.plot(x, samples[p])
-    else:
-        plt.plot(x, samples)
+    # if len(plt_samples.shape) > 1:
+    #     for p in range(plt_samples.shape):
+    #         plt.plot(x, plt_samples[p])
+    # else:
+    #     plt.plot(x, plt_samples)
+    plt.plot(x, plt_samples)
 
     plt.title(title)
     plt.ylabel('Amplitude')

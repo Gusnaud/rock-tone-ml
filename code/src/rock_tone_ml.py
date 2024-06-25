@@ -101,15 +101,19 @@ class VocoderCNN(nn.Module):
 
 
 class WavDataset(Dataset):
-    def __init__(self, data_samples, labels, transforms=None):
+    def __init__(self, data_samples, labels, transforms=None, batch_size=512):
         """
         Args:
             data_samples (list): List of data samples.
             labels (list): Corresponding labels for the data samples.
             transforms (callable, optional): Optional transform to be applied on a sample.
         """
-        self.data_samples = data_samples
-        self.labels = labels
+        # batch samples
+        # seg_samples = [data_samples[ii:ii+batch_size] for ii in range(0, len(data_samples)-batch_size)]
+        # seg_labels = [labels[ii:ii+batch_size] for ii in range(0, len(labels)-batch_size)]
+
+        self.data_samples = [data_samples[ii:ii+batch_size] for ii in range(0, len(data_samples)-batch_size)]
+        self.labels = [labels[ii:ii+batch_size] for ii in range(0, len(labels)-batch_size)]
         self.transforms = transforms
     
     def __len__(self):
