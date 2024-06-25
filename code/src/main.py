@@ -13,13 +13,19 @@ def main():
     
     start_secs = 4 * 60 + 30
     segment_length = 1
+    audio_len_secs = 5
+    train_epochs = 20
+    batch_size = 512
+    learn_rate = 1e-3
     is_segmented = True if segment_length > 1 else False
 
     # Load samples from given wav file
-    samples = tsl.load_wav_data(file_path=wav_file, length_sec=1, start=start_secs, segment_l=segment_length)
+    samples = tsl.load_wav_data(file_path=wav_file, length_sec=audio_len_secs, 
+                                start=start_secs, segment_l=segment_length)
 
     # Target tone file
-    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_sec=1, start=start_secs, segment_l=segment_length)
+    target_samples = tsl.load_wav_data(file_path=target_wav_file, length_sec=audio_len_secs, 
+                                       start=start_secs, segment_l=segment_length)
 
     # Sample diffs
     diff_samples = [ss - tt for ss, tt in zip(samples, target_samples)]
@@ -43,8 +49,8 @@ def main():
     # Create dataset
     train_ds = ampnet.WavDataset(samples, target_samples, batch_size=segment_length)
 
-    ampnet.train_net(model=model, epochs=1, 
-                     train_ds=train_ds, learn_rate=1e-5, batch_size=512,
+    ampnet.train_net(model=model, epochs=train_epochs, 
+                     train_ds=train_ds, learn_rate=learn_rate, batch_size=batch_size,
                      save_to_file=True
     )
 
@@ -58,7 +64,7 @@ def main():
         else:
             print("No CUDA device, using CPU")
         device = ampnet.torch.device("cuda:0" if ampnet.torch.cuda.is_available() else "cpu")
-        samples_prep = ampnet.torch.tensor(samples[0:100], dtype=ampnet.torch.float32)
+        samples_prep = ampnet.torch.tensor(samples, dtype=ampnet.torch.float32)
         samples_prep = samples_prep.unsqueeze(0).unsqueeze(0)
         print("samples shape from loader:", samples_prep.shape)
         inputs = samples_prep.to(device)
@@ -73,7 +79,7 @@ def main():
         tsl.write_wav_file(file_path='data/Marshall_Plexi_modulated.wav', data=modulated_data)
 
     # Plot and vizualise samples
-    tsl.plot_samples(samples=target_samples, title="modulated_data")
+    tsl.plot_samples(samples=target_samples, title="modulated_data", is_segmented=False)
     # tsl.plot_samples(samples=target_samples, title="target_samples")
 
     

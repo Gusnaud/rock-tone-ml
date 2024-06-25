@@ -112,8 +112,8 @@ class WavDataset(Dataset):
         # seg_samples = [data_samples[ii:ii+batch_size] for ii in range(0, len(data_samples)-batch_size)]
         # seg_labels = [labels[ii:ii+batch_size] for ii in range(0, len(labels)-batch_size)]
 
-        self.data_samples = [data_samples[ii:ii+batch_size] for ii in range(0, len(data_samples)-batch_size)]
-        self.labels = [labels[ii:ii+batch_size] for ii in range(0, len(labels)-batch_size)]
+        self.data_samples = data_samples#[data_samples[ii:ii+batch_size] for ii in range(0, len(data_samples)-batch_size)]
+        self.labels = labels#[labels[ii:ii+batch_size] for ii in range(0, len(labels)-batch_size)]
         self.transforms = transforms
     
     def __len__(self):
