@@ -11,13 +11,13 @@ def main():
     wav_file = 'data/Marshall Plexi - Dry.wav'
     target_wav_file = 'data/Marshall Plexi - Amp.wav'
     
-    train_flag = False
-    start_secs = 4 * 60 + 30
+    train_flag = True
+    start_secs = 0 * 60 + 30
     segment_length = 1
-    audio_len_secs = 15
-    train_epochs = 50
-    batch_size = 512
-    learn_rate = 1e-3
+    audio_len_secs = 2 * 60 + 0
+    train_epochs = 100
+    batch_size = 4096
+    learn_rate = 1e-4
     is_segmented = True if segment_length > 1 else False
 
     # Load samples from given wav file
@@ -51,7 +51,6 @@ def main():
         # dot = make_dot(model(dummy_input), params=dict(model.named_parameters()))
         # dot.render(filename='model_graph', format='png', cleanup=True)
 
-
         # Create dataset
         train_ds = ampnet.WavDataset(samples, target_samples, batch_size=segment_length)
 
@@ -74,7 +73,7 @@ def main():
         test_ds = ampnet.WavDataset(samples_prep, target_samples, batch_size=segment_length)
         
         testloader = ampnet.torch.utils.data.DataLoader(test_ds, batch_size=batch_size, 
-                                            shuffle=False, num_workers=8
+                                            shuffle=False, num_workers=6
         )
 
         modulated_data = list()
@@ -87,12 +86,10 @@ def main():
         modulated_data = modulated_data.flatten()
         print(modulated_data.shape)
         
-
         tsl.write_wav_file(file_path='data/Marshall_Plexi_modulated.wav', data=modulated_data)
 
     # Plot and vizualise samples
     tsl.plot_samples(samples=target_samples, title="modulated_data", is_segmented=False)
-
     
 if __name__ == '__main__':
     main()

@@ -65,26 +65,43 @@ class ToneNet(nn.Module):
 class ToneNet_NN(nn.Module):
     def __init__(self, *args, **kwargs) -> None:
         super(ToneNet_NN, self).__init__(*args, **kwargs)
-        self.fc2 = nn.Linear(1, 128)
-        self.fc3 = nn.Linear(128, 512)
-        self.fc31 = nn.Linear(512, 512)
-        self.fc32 = nn.Linear(512, 128)
-        self.drop = nn.Dropout(p=0.2)
-        self.fc4 = nn.Linear(128, 32)
-        self.fc_output = nn.Linear(32, 1)
-        self.relu = nn.ReLU()
-        self.tan = nn.Tanh()
+        self.full_net = nn.Sequential(
+            # nn.Conv1d(in_channels=1, out_channels=128, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.Conv1d(in_channels=128, out_channels=512, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            
+            # nn.Flatten(),
+
+            nn.Linear(1, 64),
+            nn.ReLU(),
+            nn.Linear(64, 256),
+            nn.ReLU(),
+            nn.Linear(256, 512),
+            nn.ReLU(),
+            nn.Linear(512, 1024),
+            nn.ReLU(),
+            
+            nn.Dropout(p=0.2),
+
+            nn.Linear(1024, 1024),
+            nn.ReLU(),
+            nn.Linear(1024, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Tanh()
+        )
 
     def forward(self, x):
-        x = self.relu(self.fc2(x))
-        x = self.relu(self.fc3(x))
-        x = self.relu(self.fc31(x))
-        x = self.relu(self.fc32(x))
-
-        x = self.drop(x)
-        x = self.relu(self.fc4(x))
-        x = self.tan(self.fc_output(x))
-        return x
+        return self.full_net(x)
 
 
 class VocoderCNN(nn.Module):
@@ -255,7 +272,9 @@ def train_net(model=None,
         if graph == None:
             # plotting the first frame
             graph = plt.plot(epoch_lst, loss_hist, 'b')[0]
-            # plt.ylim(0,10)
+            plt.xlabel("Epochs")
+            plt.ylabel("Training Loss")
+            plt.title("Training Loss History")
             plt.pause(1)
 
         graph.remove()
