@@ -16,12 +16,12 @@ def main():
     start_secs = 0 * 60 + 30
     segment_length = 2
     audio_len_secs = 0 * 60 + 10
-    train_epochs = 30
+    train_epochs = 1
     batch_size = 512
     learn_rate = 1e-4
     is_segmented = True if segment_length > 1 else False
 
-    rnn_num_layers = 1
+    rnn_num_layers = 2
     rnn_num_directions = 1
     rnn_hid_size = 1
 
@@ -86,7 +86,10 @@ def main():
         for data_i, data_l in ampnetRNN.tqdm(testloader):
 
             inputs = data_i.to(device)
-            modulated_data.append(model(inputs, None)[0].detach().cpu().numpy().flatten())
+            batch_sequence = list()
+            for seq in model(inputs, None)[0].detach().cpu().numpy():
+                batch_sequence.append(seq[0])
+            modulated_data.append(np.asarray(batch_sequence))
         modulated_data = np.concatenate(modulated_data, axis=0)
         
         print("modulated_data shape from loader:", modulated_data.shape)
