@@ -14,7 +14,7 @@ def main():
     
     train_flag = True
     start_secs = 0 * 60 + 30
-    segment_length = 1
+    segment_length = 2
     audio_len_secs = 0 * 60 + 10
     train_epochs = 30
     batch_size = 512
