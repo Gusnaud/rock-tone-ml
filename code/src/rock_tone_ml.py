@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchsummary import summary
+from torchmetrics.functional.regression import r2_score
 # import torchvision
 # import torchvision.transforms as transforms
 from transformers import SpeechT5Processor, SpeechT5ForSpeechToSpeech, SpeechT5HifiGan
@@ -68,35 +69,49 @@ class ToneNet_NN(nn.Module):
         self.full_net = nn.Sequential(
             # nn.Conv1d(in_channels=1, out_channels=128, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(),
-            # nn.Conv1d(in_channels=128, out_channels=512, kernel_size=3, stride=1, padding=1),
+            # nn.Conv1d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1),
+            # nn.ReLU(),
+            # nn.Conv1d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(),
             # nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
-            # nn.ReLU(),
-            # nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(),
             
             # nn.Flatten(),
 
-            nn.Linear(1, 64),
+            # nn.Linear(1, 16),
+            # nn.ReLU(),
+            # nn.Linear(16, 32),
+            # nn.ReLU(),
+            # nn.Linear(32, 64),
+            # nn.ReLU(),
+            nn.Linear(1, 2048),
             nn.ReLU(),
-            nn.Linear(64, 256),
+            nn.Linear(2048, 4096),
             nn.ReLU(),
-            nn.Linear(256, 512),
+            nn.Linear(4096, 8192),
             nn.ReLU(),
-            nn.Linear(512, 1024),
-            nn.ReLU(),
-            
-            nn.Dropout(p=0.2),
+            # nn.Linear(512, 1024),
+            # nn.ReLU(),
 
-            nn.Linear(1024, 1024),
+            nn.Dropout(p=0.5),
+
+            # nn.Linear(1024, 1024),
+            # nn.ReLU(),
+            # nn.Linear(1024, 1024),
+            # nn.ReLU(),
+            # nn.Linear(1024, 512),
+            # nn.ReLU(),
+            nn.Linear(8192, 4096),
             nn.ReLU(),
-            nn.Linear(1024, 512),
+            nn.Linear(4096, 2048),
             nn.ReLU(),
-            nn.Linear(512, 256),
-            nn.ReLU(),
-            nn.Linear(256, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1),
+            nn.Linear(2048, 1),
+            # nn.ReLU(),
+            # nn.Linear(64, 32),
+            # nn.ReLU(),
+            # nn.Linear(32, 16),
+            # nn.ReLU(),
+            # nn.Linear(16, 1),
             nn.Tanh()
         )
 
@@ -111,35 +126,41 @@ class VocoderCNN(nn.Module):
         self.encoder = nn.Sequential(
             nn.Conv1d(in_channels=1, out_channels=128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            nn.Conv1d(in_channels=128, out_channels=512, kernel_size=3, stride=1, padding=1),
+            nn.Conv1d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Conv1d(in_channels=512, out_channels=1024, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=1024, out_channels=2048, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             # nn.Conv1d(in_channels=2048, out_channels=2048, kernel_size=3, stride=1, padding=1),
             # nn.ReLU(),
 
-            # nn.Linear(1024, 1024, False),
-            # nn.ReLU(),
-            # nn.Linear(1024, 1024, False),
-            # nn.ReLU(),
+            nn.Flatten(),
+
+            nn.Dropout(p=0.5),
+
+            nn.Linear(1024, 4096, True),
+            nn.ReLU(),
+            nn.Linear(4096, 4096, True),
+            nn.ReLU(),
         )
         
         # Decoder layers
         self.decoder = nn.Sequential(
-            # nn.Linear(1024, 1024, False),
-            # nn.ReLU(),
-            # nn.Linear(1024, 1024, False),
-            # nn.ReLU(),
+            nn.Linear(4096, 4096, True),
+            nn.ReLU(),
+            nn.Linear(4096, 1024, True),
+            nn.ReLU(),
+
+            nn.Unflatten(1, (1024, 1)),
 
             # nn.ConvTranspose1d(in_channels=2048, out_channels=2048, kernel_size=1, stride=1, padding=0),
             # nn.ReLU(),
-            nn.ConvTranspose1d(in_channels=2048, out_channels=1024, kernel_size=1, stride=1, padding=0),
-            nn.ReLU(),
             nn.ConvTranspose1d(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0),
             nn.ReLU(),
-            nn.ConvTranspose1d(in_channels=512, out_channels=128, kernel_size=1, stride=1, padding=0),
+            nn.ConvTranspose1d(in_channels=512, out_channels=256, kernel_size=1, stride=1, padding=0),
+            nn.ReLU(),
+            nn.ConvTranspose1d(in_channels=256, out_channels=128, kernel_size=1, stride=1, padding=0),
             nn.ReLU(),
             nn.ConvTranspose1d(in_channels=128, out_channels=1, kernel_size=1, stride=1, padding=0),
             nn.Tanh(),  # Tanh to ensure the output is within a range suitable for audio signals
@@ -222,12 +243,13 @@ def train_net(model=None,
 
     # Instantiate the network and send it to device
     model = model.to(device)
-    summary(model, input_size= (1, 1), batch_size=batch_size)
+    # summary(model, input_size= (1, 1), batch_size=batch_size)
     # return
 
     plt.ion()
     graph = None
     loss_hist = list()
+    r2_hist = list()
     epoch_lst = list()
 
     # Define a Loss function and optimizer
@@ -243,6 +265,7 @@ def train_net(model=None,
     # Train the network
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
+        running_R2 = 0.0
         steps = 0
         for data_i, data_l in tqdm(trainloader):
             # print("D:", data_i.shape)
@@ -260,14 +283,16 @@ def train_net(model=None,
             steps += 1
 
             running_loss += outputs.shape[0] * loss.item()
+            running_R2 += r2_score(inputs.flatten(), outputs.flatten())
             
             # zero the parameter gradients
             optimizer.zero_grad()
 
         # Print loss for each epoch    
+        r2_hist.append(running_R2 / float(len(trainloader.dataset)))
         loss_hist.append(running_loss / float(len(trainloader.dataset)))
         epoch_lst.append(epoch + 1)
-        print('[Epoch: %d, Steps: %5d, loss: %.3f]' % (epoch_lst[-1], steps, loss_hist[-1]))
+        print('[Epoch: %d, Steps: %5d, loss: %.3f, R2: %.6f]' % (epoch_lst[-1], steps, loss_hist[-1], r2_hist[-1]))
 
         if graph == None:
             # plotting the first frame
