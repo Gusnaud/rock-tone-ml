@@ -36,7 +36,14 @@ class YAMToneNEt():
         
     
     def define_decoder(self, *args, **kwargs):
-        pass
+        input_layer = keras.layers.Input(input_shape=(1024, 1), dtype=tf.float32)
+        x = keras.layers.Flatten()(input_layer)
+        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
+        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
+        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
+        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
+        return keras.Model(inputs=[input_layer], outputs=[x], name='yamnet_decoder')
+        
 
     def chunk_audio(self, x, chunk_size=10):
         print("Chunking audio data...")
@@ -78,6 +85,8 @@ if __name__ == '__main__':
     df['sample_embeddings'] = [model.forward(x) for x in sample_audio]
     df['label_embeddings'] = [model.forward(x) for x in label_audio]
     print(" df ", df)
+
+
    
 
 
