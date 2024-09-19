@@ -30,7 +30,7 @@ def load_wav_data(file_path=None, length_sec=0.1, start=0, segment_l=512):
     # for ll in seg_samples:
     #     for el in ll:
     #         result.append(el)
-    return samples
+    return [samples, sample_rate]
 
 def write_wav_file(file_path=None, data=None):
     audt.save_wav(file_path=file_path, data=data)

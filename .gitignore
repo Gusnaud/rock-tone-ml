@@ -3,5 +3,7 @@
 
 # ignore ALL files in ANY directory named temp
 data/
+models/
+.ven*
 
 *.pth
