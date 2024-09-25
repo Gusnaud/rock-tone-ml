@@ -21,8 +21,16 @@ class YAMToneNEt():
         self.optimizer = None
 
     def forward(self, x):
+        result = self.encode(x)
+        return self.decode(result)
+    
+    def encode(self, x):
         scores, embeddings, spectrogram = self.encoder(x)
         return embeddings
+    
+    def decode(self, x):
+        res = self.decoder(x)
+        return res
     
     def resample(self, x, origsr=44100, targetsr=16000):
         sound_data = librosa.resample(x, orig_sr=origsr, target_sr=targetsr)
@@ -36,12 +44,9 @@ class YAMToneNEt():
         
     
     def define_decoder(self, *args, **kwargs):
-        input_layer = keras.layers.Input(input_shape=(1024, 1), dtype=tf.float32)
-        x = keras.layers.Flatten()(input_layer)
-        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
-        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
-        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
-        x = keras.layers.Conv1DTranspose(in_channels=1024, out_channels=512, kernel_size=1, stride=1, padding=0)(x)
+        input_layer = keras.layers.Input((1024, 1), dtype=tf.float32)
+        x = keras.layers.Conv1DTranspose(512, kernel_size=1, strides=1, padding='valid')(input_layer)
+        x = keras.layers.Conv1DTranspose(16, kernel_size=1, strides=1, padding='valid')(x)
         return keras.Model(inputs=[input_layer], outputs=[x], name='yamnet_decoder')
         
 
@@ -82,9 +87,14 @@ if __name__ == '__main__':
 
     # Load audio chunk embeddings into dataframe
     df = pd.DataFrame()
-    df['sample_embeddings'] = [model.forward(x) for x in sample_audio]
-    df['label_embeddings'] = [model.forward(x) for x in label_audio]
+    df['sample_embeddings'] = [model.encode(x) for x in sample_audio]
+    df['label_embeddings'] = [model.encode(x) for x in label_audio]
     print(" df ", df)
+
+    df['predicted'] = [model.decode(x) for x in df['sample_embeddings']]
+    print(" df ", df)
+
+       
 
 
    
